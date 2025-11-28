@@ -5,7 +5,7 @@ Proje; Hugging Face API ve Machine Learning Forecasting teknolojilerini bir aray
 
 ## 🚀 Proje Özeti
 
-Proje tek katmanlı olarak geliştirilmiştir. PostgreSQL veritabanı ile dinamik olarak çalışır. Kullanılan entity'ler:
+Proje, PostgreSQL veritabanı ile dinamik olarak çalışır. Kullanılan entity'ler:
 
 | Entity | Açıklama |
 |--------|----------|
@@ -22,11 +22,11 @@ Proje tek katmanlı olarak geliştirilmiştir. PostgreSQL veritabanı ile dinami
 
 - PostgreSQL (UI + Admin Panel dinamik veri)
 - Entity Framework 6.2 – DB First
-- ASP.NET MVC 5 (.NET Framework)
+- ASP.NET Core 9.0
 - Bootstrap 5 – Bakery Template (Baker)
 - SignalR (Gerçek zamanlı chatbot)
-- Hugging Face API (Meta-Llama-3-8B-Instruct)
-- Machine Learning Forecasting (ML.NET veya Python model)
+- Hugging Face API
+- Machine Learning Forecasting (ML.NET)
 
 ## 🎨 Tema Özellikleri
 
@@ -49,8 +49,6 @@ Product detay sayfasında yer alacak açıklamalar Hugging Face AI ile otomatik 
 📌**Gerçek Zamanlı Admin Chatbot (Hugging Face + SignalR)**
 
 Admin paneline entegre SignalR tabanlı bir canlı sohbet sistemi bulunmaktadır.
-
-- Chatbot motoru: Hugging Face Meta-Llama-3-8B-Instruct
 - Admin sayfasında gerçek zamanlı soru → anında yanıt
 - Müşteri hizmetleri asistanı rolünde çalışır.
 
