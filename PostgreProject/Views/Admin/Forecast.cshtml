@@ -1,0 +1,577 @@
+﻿@{
+    ViewData["Title"] = "Satış Tahmini";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+    var forecast = ViewBag.Forecast as PostgreProject.Services.ForecastResult;
+    var historical = ViewBag.Historical as List<PostgreProject.Services.MonthlyForecast>;
+}
+
+
+<style>
+    #salesForecastChart {
+        max-height: 400px !important;
+    }
+    
+    #monthlyDistributionChart {
+        max-height: 300px !important;
+    }
+    
+    #topProductsChart {
+        max-height: 300px !important;
+    }
+</style>
+<div class="container fluid">
+
+    @if (ViewBag.Error != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong><i class="mdi mdi-alert"></i> Hata!</strong> @ViewBag.Error
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    else if (forecast != null)
+    {
+        <!-- ÜST KARTLAR: Toplam Sipariş, Toplam Gelir, Ortalama Sipariş -->
+        <div class="row">
+            <!-- Toplam Sipariş -->
+            <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-danger card-img-holder text-white">
+                    <div class="card-body">
+                        <img src="~/PurpleAdmin-Free-Admin-Template-1.0.0/assets/images/dashboard/circle.svg" 
+                             class="card-img-absolute" alt="circle-image" />
+                        <h4 class="font-weight-normal mb-3">
+                            Toplam Sipariş
+                            <i class="mdi mdi-cart mdi-24px float-end"></i>
+                        </h4>
+                        <h2 class="mb-5">@ViewBag.TotalOrders?.ToString("N0")</h2>
+                        <h6 class="card-text">Ocak-Eylül 2025 Dönemi</h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toplam Gelir -->
+            <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-info card-img-holder text-white">
+                    <div class="card-body">
+                        <img src="~/PurpleAdmin-Free-Admin-Template-1.0.0/assets/images/dashboard/circle.svg" 
+                             class="card-img-absolute" alt="circle-image" />
+                        <h4 class="font-weight-normal mb-3">
+                            Toplam Gelir
+                            <i class="mdi mdi-cash-multiple mdi-24px float-end"></i>
+                        </h4>
+                        <h2 class="mb-5">₺@ViewBag.TotalRevenue?.ToString("N0")</h2>
+                        <h6 class="card-text">Ocak-Eylül 2025 Dönemi</h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ortalama Sipariş Tutarı -->
+            <div class="col-md-4 stretch-card grid-margin">
+                <div class="card bg-gradient-success card-img-holder text-white">
+                    <div class="card-body">
+                        <img src="~/PurpleAdmin-Free-Admin-Template-1.0.0/assets/images/dashboard/circle.svg" 
+                             class="card-img-absolute" alt="circle-image" />
+                        <h4 class="font-weight-normal mb-3">
+                            Ortalama Sipariş
+                            <i class="mdi mdi-chart-bar mdi-24px float-end"></i>
+                        </h4>
+                        @{
+                            var avgOrder = ViewBag.TotalOrders > 0 
+                                ? (decimal)ViewBag.TotalRevenue / ViewBag.TotalOrders 
+                                : 0;
+                        }
+                        <h2 class="mb-5">₺@avgOrder.ToString("N2")</h2>
+                        <h6 class="card-text">Sipariş Başına</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRAFİKLER -->
+        <div class="row">
+            <!-- Line Chart -->
+            <div class="col-lg-8 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-chart-line"></i> Satış Trendi ve Tahminler
+                        </h4>
+                        <canvas id="salesForecastChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doughnut Chart -->
+            <div class="col-lg-4 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-chart-donut"></i> 3 Aylık Tahmin Dağılımı
+                        </h4>
+                        <canvas id="monthlyDistributionChart" height="250"></canvas>
+                        <div id="forecast-legend" class="pt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EN ÇOK SATAN 5 ÜRÜN -->
+        <div class="row">
+            <!-- Tablo -->
+            <div class="col-lg-7 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-fire"></i> En Çok Satan 5 Ürün (Son 6 Ay)
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Ürün Adı</th>
+                                        <th>Satış Adedi</th>
+                                        <th>Toplam Gelir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (ViewBag.TopProducts != null && ViewBag.TopProducts.Count > 0)
+                                    {
+                                        int rank = 1;
+                                        foreach (var product in ViewBag.TopProducts)
+                                        {
+                                            var badgeClass = rank == 1 ? "badge-danger" : 
+                                                           rank == 2 ? "badge-warning" : 
+                                                           rank == 3 ? "badge-info" : "badge-secondary";
+                                            var iconClass = rank == 1 ? "mdi-trophy" : 
+                                                          rank == 2 ? "mdi-medal" : 
+                                                          rank == 3 ? "mdi-medal-outline" : "mdi-star-outline";
+                                            
+                                            <tr>
+                                                <td>
+                                                    <span class="badge @badgeClass">
+                                                        <i class="mdi @iconClass"></i> @rank
+                                                    </span>
+                                                </td>
+                                                <td><strong>@product.ProductName</strong></td>
+                                                <td>
+                                                    <span class="badge badge-success">
+                                                        @product.TotalQuantity.ToString("N0") adet
+                                                    </span>
+                                                </td>
+                                                <td class="text-primary">
+                                                    <strong>₺@product.TotalRevenue.ToString("N2")</strong>
+                                                </td>
+                                            </tr>
+                                            rank++;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">
+                                                <i class="mdi mdi-information-outline"></i> Veri bulunamadı
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart -->
+            <div class="col-lg-5 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-chart-bar"></i> Ürün Satış Grafiği
+                        </h4>
+                        <canvas id="topProductsChart" height="280"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAHMİN ÖZETİ ve İSTATİSTİKLER -->
+        <div class="row">
+            <!-- Tahmin Özeti -->
+            <div class="col-md-6 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-calendar-clock"></i> Tahmin Özeti (Ekim-Kasım-Aralık)
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Ay</th>
+                                        <th class="text-end">Tahmin Edilen Gelir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var month in forecast.MonthlyForecasts)
+                                    {
+                                        <tr>
+                                            <td><strong>@month.MonthName @month.Year</strong></td>
+                                            <td class="text-success text-end">
+                                                <strong>₺@month.PredictedSales.ToString("N2")</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                    <tr class="table-warning">
+                                        <td><strong>TOPLAM (3 Ay)</strong></td>
+                                        <td class="text-end">
+                                            <strong>₺@forecast.MonthlyForecasts.Sum(m => m.PredictedSales).ToString("N2")</strong>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İstatistikler -->
+            <div class="col-md-6 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-information-outline"></i> İstatistikler
+                        </h4>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="mdi mdi-cash-multiple text-success"></i> 
+                                    Toplam Tahmin (3 Ay)
+                                </span>
+                                <strong class="text-success">
+                                    ₺@forecast.MonthlyForecasts.Sum(m => m.PredictedSales).ToString("N2")
+                                </strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="mdi mdi-chart-bar text-info"></i> 
+                                    Ortalama Aylık
+                                </span>
+                                <strong class="text-info">
+                                    ₺@forecast.MonthlyForecasts.Average(m => m.PredictedSales).ToString("N2")
+                                </strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="mdi mdi-trending-up text-warning"></i> 
+                                    En Yüksek Ay
+                                </span>
+                                <strong class="text-warning">
+                                    @forecast.MonthlyForecasts.OrderByDescending(m => m.PredictedSales).First().MonthName
+                                </strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="mdi mdi-trending-down text-danger"></i> 
+                                    En Düşük Ay
+                                </span>
+                                <strong class="text-danger">
+                                    @forecast.MonthlyForecasts.OrderBy(m => m.PredictedSales).First().MonthName
+                                </strong>
+                            </li>
+                       
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- GEÇMİŞ VERİLER TABLOSU -->
+        
+        <div class="row">
+            <div class="col-lg-12 grid-margin stretch-card">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="mdi mdi-history"></i> Geçmiş Veriler (Ocak–Eylül 2025)
+                        </h4>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Ay</th>
+                                        <th>Gerçekleşen Satış</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    @if (historical != null && historical.Any())
+                                    {
+                                        @foreach (var month in historical)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <strong>@month.MonthName @month.Year</strong>
+                                                </td>
+                                                <td class="text-success">
+                                                    <strong>₺@month.PredictedSales.ToString("N2")</strong>
+                                                </td>
+                                            </tr>
+                                        }
+
+                                        <tr class="table-active">
+                                            <td><strong>TOPLAM</strong></td>
+                                            <td class="text-primary">
+                                                <strong>₺@historical.Sum(h => h.PredictedSales).ToString("N2")</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="2" class="text-center text-muted py-4">
+                                                <i class="mdi mdi-information-outline"></i> Veri bulunamadı
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="mdi mdi-information-outline"></i> 
+            Tahmin verisi henüz oluşturulmadı. Lütfen önce sipariş verilerini yükleyin.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(function() {
+            try {
+                var historical = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(historical));
+                var forecast = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(forecast?.MonthlyForecasts));
+
+                if (!historical || historical.length === 0) {
+                    console.warn('Historical data bulunamadı');
+                    return;
+                }
+                if (!forecast || forecast.length === 0) {
+                    console.warn('Forecast data bulunamadı');
+                    return;
+                }
+
+                // Ayları ve değerleri hazırla
+                var allMonths = historical.map(h => h.MonthName || h.monthName)
+                    .concat(forecast.map(f => f.MonthName || f.monthName));
+
+                var historicalSales = historical.map(h => h.PredictedSales || h.predictedSales || 0);
+                var forecastSales = Array(historical.length).fill(null)
+                    .concat(forecast.map(f => f.PredictedSales || f.predictedSales || 0));
+
+                // LINE CHART
+                if ($("#salesForecastChart").length) {
+                    new Chart($("#salesForecastChart")[0].getContext("2d"), {
+                        type: 'line',
+                        data: {
+                            labels: allMonths,
+                            datasets: [
+                                {
+                                    label: 'Gerçekleşen Satışlar',
+                                    data: [...historicalSales, null, null, null],
+                                    borderColor: '#7367f0',
+                                    backgroundColor: 'rgba(115, 103, 240, 0.1)',
+                                    borderWidth: 3,
+                                    tension: 0.4,
+                                    fill: true,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    pointBackgroundColor: '#7367f0',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2
+                                },
+                                {
+                                    label: 'Tahmin Edilen Satışlar',
+                                    data: forecastSales,
+                                    borderColor: '#ff6384',
+                                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                    borderWidth: 3,
+                                    borderDash: [10, 5],
+                                    tension: 0.4,
+                                    fill: true,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    pointBackgroundColor: '#ff6384',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': ₺' + 
+                                                context.parsed.y.toLocaleString('tr-TR', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                });
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: value => '₺' + value.toLocaleString('tr-TR')
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // DOUGHNUT CHART
+                if ($("#monthlyDistributionChart").length) {
+                    var forecastSalesData = forecast.map(f => f.PredictedSales || f.predictedSales || 0);
+                    var colors = ['#ff6384', '#36a2eb', '#ffce56'];
+
+                    new Chart($("#monthlyDistributionChart")[0].getContext("2d"), {
+                        type: 'doughnut',
+                        data: {
+                            labels: forecast.map(f => f.MonthName || f.monthName),
+                            datasets: [{
+                                data: forecastSalesData,
+                                backgroundColor: colors.map(c => c + 'cc'),
+                                borderColor: colors,
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(ctx) {
+                                            var total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                            var pct = ((ctx.parsed / total) * 100).toFixed(1);
+                                            return ctx.label + ': ₺' + ctx.parsed.toLocaleString('tr-TR') + 
+                                                ' (' + pct + '%)';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Legend
+                    var total = forecastSalesData.reduce((a, b) => a + b, 0);
+                    var legendHtml = forecast.map((f, i) => {
+                        var pct = ((forecastSalesData[i] / total) * 100).toFixed(1);
+                        return `<div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <span style="width:15px;height:15px;background:${colors[i]};border-radius:3px;margin-right:10px;"></span>
+                                <small class="text-muted">${f.MonthName || f.monthName}</small>
+                            </div>
+                            <small class="text-muted"><strong>${pct}%</strong></small>
+                        </div>`;
+                    }).join('');
+                    $("#forecast-legend").html(legendHtml);
+                }
+
+                // TOP PRODUCTS BAR CHART
+                var topProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.TopProducts));
+                
+                if (topProducts && topProducts.length > 0 && $("#topProductsChart").length) {
+                    console.log(' Top Products:', topProducts.length);
+
+                    var productNames = topProducts.map(p => p.ProductName || p.productName || 'Bilinmeyen');
+                    var productQuantities = topProducts.map(p => p.TotalQuantity || p.totalQuantity || 0);
+                    var productRevenues = topProducts.map(p => p.TotalRevenue || p.totalRevenue || 0);
+
+                    // Renk gradient'i (1. en koyu, 5. en açık)
+                    var colors = [
+                        'rgba(255, 99, 132, 1)',   // Kırmızı (1.)
+                        'rgba(255, 159, 64, 1)',   // Turuncu (2.)
+                        'rgba(54, 162, 235, 1)',   // Mavi (3.)
+                        'rgba(75, 192, 192, 1)',   // Turkuaz (4.)
+                        'rgba(153, 102, 255, 1)'   // Mor (5.)
+                    ];
+
+                    new Chart($("#topProductsChart")[0].getContext("2d"), {
+                        type: 'bar',
+                        data: {
+                            labels: productNames,
+                            datasets: [{
+                                label: 'Satış Adedi',
+                                data: productQuantities,
+                                backgroundColor: colors.map(c => c.replace('1)', '0.7)')),
+                                borderColor: colors,
+                                borderWidth: 2,
+                                borderRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y', // Yatay bar chart
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            var index = context.dataIndex;
+                                            return [
+                                                'Satış: ' + productQuantities[index].toLocaleString('tr-TR') + ' adet',
+                                                'Gelir: ₺' + productRevenues[index].toLocaleString('tr-TR', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                })
+                                            ];
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: value => value.toLocaleString('tr-TR')
+                                    }
+                                },
+                                y: {
+                                    ticks: {
+                                        font: { size: 11 },
+                                        callback: function(value, index) {
+                                            // Uzun isimleri kısalt
+                                            var label = this.getLabelForValue(value);
+                                            return label.length > 20 ? label.substr(0, 20) + '...' : label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('Chart hatası:', error);
+            }
+        });
+    </script>
+}

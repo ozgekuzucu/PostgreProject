@@ -1,0 +1,42 @@
+﻿@model List<PostgreProject.Entities.Slider>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+
+<h2>Slider Listesi</h2>
+
+<a class="btn btn-primary" href="/Slider/Create">Yeni Slider Ekle</a>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Başlık</th>
+            <th>Alt Başlık</th>
+            <th>Resim</th>
+            <th>Açıklama</th>
+            <th>İşlemler</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.SubTitle</td>
+                <td><img src="@item.ImageUrl" width="120" /></td>
+                <td>@item.Description</td>
+                <td>
+                    <a class="btn btn-sm btn-warning" href="/Slider/Edit/@item.SliderId">
+                        <i class="mdi mdi-pencil"></i>
+                    </a>
+                    <a class="btn btn-sm btn-danger" href="/Slider/Delete/@item.SliderId" onclick="return confirm('Silmek istediğinize emin misiniz?')">
+                        <i class="mdi mdi-delete"></i>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+

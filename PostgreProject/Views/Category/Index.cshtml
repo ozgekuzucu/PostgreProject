@@ -1,0 +1,47 @@
+﻿@model List<PostgreProject.Entities.Category>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<h2>Kategori Listesi</h2>
+
+<a class="btn btn-primary" href="/Category/Create">Yeni Kategori Ekle</a>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Kategori Adı</th>
+            <th>Resim</th>
+            <th>Ürün Sayısı</th>
+            <th>İşlemler</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.CategoryName</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                    {
+                        <img src="@item.ImageUrl" width="120" />
+                    }
+                    else
+                    {
+                        <span class="text-muted">Resim yok</span>
+                    }
+                </td>
+                <td>@(item.Products?.Count ?? 0)</td>
+                <td>
+                    <a href="/Category/Edit/@item.Id" class="btn btn-sm btn-warning">
+                        <i class="mdi mdi-pencil"></i>
+                    </a>
+                    <a href="/Category/Delete/@item.Id" class="btn btn-sm btn-danger" onclick="return confirm('Silmek istediğinize emin misiniz?')">
+                        <i class="mdi mdi-delete"></i>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

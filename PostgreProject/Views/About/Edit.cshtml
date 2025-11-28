@@ -1,0 +1,163 @@
+﻿@model PostgreProject.Dtos.AboutDtos.UpdateAboutDto
+@{
+    ViewData["Title"] = "Hakkımızda Düzenle";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-4">
+            <i class="mdi mdi-pencil"></i> Hakkımızda Düzenle
+        </h4>
+
+        <form asp-action="Edit" method="post" id="aboutEditForm">
+            <input type="hidden" asp-for="Id" />
+
+            <!-- Başlık ve Alt Başlık -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label">Başlık *</label>
+                        <input asp-for="Title" class="form-control" />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SubTitle" class="form-label">Alt Başlık *</label>
+                        <input asp-for="SubTitle" class="form-control" />
+                        <span asp-validation-for="SubTitle" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Metin Üretimi -->
+            <div class="mb-3">
+                <label class="form-label"> AI ile Açıklamayı Yeniden Üret (Opsiyonel)</label>
+                <div class="input-group">
+                    <input type="text" id="aiPrompt" class="form-control" placeholder="Yeni bir konu girin..." />
+                    <button type="button" id="btnGenerateAI" class="btn btn-primary">
+                        <i class="mdi mdi-robot"></i> Metin Üret
+                    </button>
+                </div>
+                <small class="text-muted">Mevcut açıklamayı korumak için boş bırakın</small>
+            </div>
+
+            <!-- Açıklama -->
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama *</label>
+                <textarea asp-for="Description" class="form-control" rows="6" id="descriptionArea"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <!-- Resim URL'leri -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ImageUrl1" class="form-label">Resim URL 1 *</label>
+                        <input asp-for="ImageUrl1" class="form-control" />
+                        <span asp-validation-for="ImageUrl1" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ImageUrl2" class="form-label">Resim URL 2 *</label>
+                        <input asp-for="ImageUrl2" class="form-control" />
+                        <span asp-validation-for="ImageUrl2" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Özellikler -->
+            <h5 class="mt-4 mb-3">Özellikler</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Feature1" class="form-label">Özellik 1 *</label>
+                        <input asp-for="Feature1" class="form-control" />
+                        <span asp-validation-for="Feature1" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Feature2" class="form-label">Özellik 2 *</label>
+                        <input asp-for="Feature2" class="form-control" />
+                        <span asp-validation-for="Feature2" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Feature3" class="form-label">Özellik 3 *</label>
+                        <input asp-for="Feature3" class="form-control" />
+                        <span asp-validation-for="Feature3" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="Feature4" class="form-label">Özellik 4 *</label>
+                        <input asp-for="Feature4" class="form-control" />
+                        <span asp-validation-for="Feature4" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Butonlar -->
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success" id="btnUpdate">
+                    <i class="mdi mdi-content-save"></i> Güncelle
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="mdi mdi-arrow-left"></i> Geri Dön
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#btnGenerateAI").click(function () {
+                var prompt = $("#aiPrompt").val().trim();
+
+                if (!prompt) {
+                    alert(" Lütfen önce bir konu girin!");
+                    $("#aiPrompt").focus();
+                    return;
+                }
+
+                var $btn = $(this);
+                var originalHtml = $btn.html();
+                $btn.prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin"></i> Üretiliyor...');
+
+                $.ajax({
+                    url: '/About/GenerateAIText',
+                    type: 'POST',
+                    data: { prompt: prompt },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#descriptionArea").val(response.text);
+                            alert(" Metin başarıyla yenilendi!");
+                        } else {
+                            alert(" " + response.message);
+                        }
+                    },
+                    error: function () {
+                        alert(" Bir hata oluştu. Lütfen tekrar deneyin.");
+                    },
+                    complete: function () {
+                        $btn.prop("disabled", false).html(originalHtml);
+                    }
+                });
+            });
+
+            $("#aboutEditForm").submit(function() {
+                $("#btnUpdate").prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin"></i> Güncelleniyor...');
+            });
+        });
+    </script>
+}

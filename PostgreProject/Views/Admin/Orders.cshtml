@@ -1,0 +1,42 @@
+﻿@model List<PostgreProject.Entities.Order>
+@{
+    ViewData["Title"] = "Orders";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+
+
+<div class="container fluid">
+    <h2>Sipariş Listesi</h2>
+    <p class="text-muted">Toplam: @Model.Count sipariş gösteriliyor</p>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Ad Soyad</th>
+                    <th>Ürün</th>
+                    <th>Fiyat</th>
+                    <th>Adet</th>
+                    <th>Toplam</th>
+                    <th>Tarih</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.FirstName @order.LastName</td>
+                        <td>@order.ProductName</td>
+                        <td>@order.Price.ToString("C2")</td>
+                        <td>@order.Quantity</td>
+                        <td>@order.TotalPrice.ToString("C2")</td>
+                        <td>@order.OrderDate.ToString("dd.MM.yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

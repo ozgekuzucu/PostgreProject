@@ -1,0 +1,180 @@
+﻿@{
+    ViewData["Title"] = "AI Chatbot";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">
+                    <i class="mdi mdi-robot"></i> AI Chatbot Asistanı
+                    <span id="connectionStatus" class="badge badge-warning float-end">Bağlanıyor...</span>
+                </h4>
+
+                <!-- Chat Box -->
+                <div id="chatBox" class="border rounded p-3 mb-3" style="height: 450px; overflow-y: auto; background: #f8f9fa;">
+                    <div class="text-center text-muted mt-5">
+                        <i class="mdi mdi-robot mdi-48px"></i>
+                        <p class="mt-2">Chatbot hazır! Bir mesaj gönderin...</p>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typingIndicator" class="text-muted small mb-2" style="display: none;">
+                    <i class="mdi mdi-dots-horizontal"></i> AI yazıyor...
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-group">
+                    <input type="text" id="messageInput" class="form-control" placeholder="Mesajınızı yazın..." />
+                    <button id="sendButton" class="btn btn-primary" disabled>
+                        <i class="mdi mdi-send"></i> Gönder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <script>
+        // SignalR Bağlantısı
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        const chatBox = document.getElementById("chatBox");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const typingIndicator = document.getElementById("typingIndicator");
+        const connectionStatus = document.getElementById("connectionStatus");
+
+        // Mesaj Alma
+        connection.on("ReceiveMessage", function (user, message) {
+            // İlk açılışta placeholder'ı temizle
+            if (chatBox.querySelector('.text-center')) {
+                chatBox.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement("div");
+            const isBot = user === "AI Asistan";
+            const isSistem = user === "Sistem";
+
+            messageDiv.className = `mb-3 ${isBot || isSistem ? 'text-start' : 'text-end'}`;
+
+            let bgColor = isBot ? 'bg-primary' : (isSistem ? 'bg-danger' : 'bg-success');
+
+            messageDiv.innerHTML = `
+                <div class="d-inline-block p-3 rounded ${bgColor} text-white" style="max-width: 75%; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <strong style="font-size: 0.85em; opacity: 0.9;">${user}</strong>
+                    <div class="mt-1" style="white-space: pre-wrap;">${escapeHtml(message)}</div>
+                    <small class="d-block mt-1 text-end" style="font-size: 0.7em; opacity: 0.7;">
+                        ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    </small>
+                </div>
+            `;
+
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // Yazıyor Göstergesi
+        connection.on("BotTyping", function (isTyping) {
+            typingIndicator.style.display = isTyping ? 'block' : 'none';
+        });
+
+        // Bağlantı Başlatma
+        connection.start()
+            .then(() => {
+                console.log("SignalR bağlantısı kuruldu");
+                connectionStatus.textContent = "Bağlı";
+                connectionStatus.className = "badge badge-success float-end";
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+            })
+            .catch(err => {
+                console.error("SignalR bağlantı hatası:", err);
+                connectionStatus.textContent = "Bağlantı Hatası";
+                connectionStatus.className = "badge badge-danger float-end";
+            });
+
+        //Yeniden bağlanma olayı
+        connection.onreconnecting(() => {
+            connectionStatus.textContent = "Yeniden Bağlanıyor...";
+            connectionStatus.className = "badge badge-warning float-end";
+            sendButton.disabled = true;
+        });
+
+        connection.onreconnected(() => {
+            connectionStatus.textContent = "Bağlı";
+            connectionStatus.className = "badge badge-success float-end";
+            sendButton.disabled = false;
+        });
+
+        // Mesaj Gönderme Fonksiyonu
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message === "") return;
+
+            try {
+                sendButton.disabled = true;
+                messageInput.disabled = true;
+
+                await connection.invoke("SendMessage", "Siz", message);
+
+                messageInput.value = "";
+            } catch (err) {
+                console.error("❌ Mesaj gönderme hatası:", err);
+                alert("Mesaj gönderilemedi! Lütfen tekrar deneyin.");
+            } finally {
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Enter ile Gönderme
+        messageInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter" && !sendButton.disabled) {
+                sendMessage();
+            }
+        });
+
+        //Butona Tıklama
+        sendButton.addEventListener("click", sendMessage);
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    <style>
+        #chatBox::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chatBox::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        #chatBox::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+            #chatBox::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+
+        #messageInput:focus {
+            border-color: #4e73df;
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
+    </style>
+}

@@ -1,0 +1,289 @@
+﻿@{
+    ViewData["Title"] = "AI Tarif Önerici";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<style>
+    .ingredient-badge {
+        display: inline-block;
+        margin: 5px;
+        padding: 8px 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        font-size: 14px;
+        animation: fadeIn 0.3s;
+    }
+
+        .ingredient-badge .remove {
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+            .ingredient-badge .remove:hover {
+                opacity: 1;
+            }
+
+    .recipe-card {
+        height: 100%;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+    .recipe-content {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+        .recipe-content pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+</style>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">
+                    <i class="mdi mdi-chef-hat"></i> AI Tarif Önerici
+                    <small class="text-muted">(3 Alternatif Tarif)</small>
+                </h4>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Malzemeler</label>
+                            <div class="input-group">
+                                <input type="text" id="ingredientInput" class="form-control form-control-lg" placeholder="Malzeme adı girin (Örn: un, yumurta, süt...)">
+                                <button type="button" id="btnAddIngredient" class="btn btn-primary">
+                                    <i class="mdi mdi-plus"></i> Ekle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold d-block">&nbsp;</label>
+                        <button type="button" id="btnGenerateRecipe" class="btn btn-gradient-success btn-lg w-100" disabled>
+                            <i class="mdi mdi-robot"></i> 3 Tarif Öner
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Eklenen Malzemeler:</label>
+                    <div id="ingredientList" class="border rounded p-3" style="min-height: 80px; background: #f8f9fa;">
+                        <small class="text-muted">
+                            <i class="mdi mdi-information-outline"></i> Henüz malzeme eklenmedi...
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="recipeContainer">
+    <div class="col-12 text-center py-5">
+        <i class="mdi mdi-food mdi-48px text-muted"></i>
+        <p class="text-muted mt-3">Malzeme ekleyip "3 Tarif Öner" butonuna basın</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        let ingredients = [];
+
+        // Malzeme ekleme
+        $("#btnAddIngredient").click(function () {
+            var ingredient = $("#ingredientInput").val().trim();
+
+            if (!ingredient) {
+                alert("Lütfen bir malzeme adı girin!");
+                $("#ingredientInput").focus();
+                return;
+            }
+
+            if (ingredients.includes(ingredient)) {
+                alert("Bu malzeme zaten eklenmiş!");
+                return;
+            }
+
+            ingredients.push(ingredient);
+            updateIngredientList();
+            $("#ingredientInput").val("").focus();
+        });
+
+        // Enter tuşu ile ekleme
+        $("#ingredientInput").keypress(function (e) {
+            if (e.which == 13) {
+                $("#btnAddIngredient").click();
+            }
+        });
+
+        // Malzeme listesini güncelle
+        function updateIngredientList() {
+            if (ingredients.length === 0) {
+                $("#ingredientList").html('<small class="text-muted"><i class="mdi mdi-information-outline"></i> Henüz malzeme eklenmedi...</small>');
+                $("#btnGenerateRecipe").prop("disabled", true);
+                return;
+            }
+
+            var html = '';
+            ingredients.forEach(function (ingredient, index) {
+                html += `<span class="ingredient-badge">
+                           ${ingredient}
+                            <span class="remove" onclick="removeIngredient(${index})" title="Kaldır">×</span>
+                         </span>`;
+            });
+
+            $("#ingredientList").html(html);
+            $("#btnGenerateRecipe").prop("disabled", false);
+        }
+
+        // Malzeme kaldırma
+        function removeIngredient(index) {
+            ingredients.splice(index, 1);
+            updateIngredientList();
+        }
+
+        // Tarif üretme
+        $("#btnGenerateRecipe").click(function () {
+            if (ingredients.length === 0) return;
+
+            $("#btnGenerateRecipe").prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin"></i> Tarifler Üretiliyor...');
+
+            $("#recipeContainer").html(`
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <p class="text-muted mt-3">AI tariflerinizi hazırlıyor, lütfen bekleyin...</p>
+                </div>
+            `);
+
+            $.ajax({
+                url: '/Recipe/GenerateRecipe',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(ingredients),
+                success: function (response) {
+                    console.log('Response:', response);
+                    if (response.success && response.recipes) {
+                        displayRecipes(response.recipes);
+                    } else {
+                        $("#recipeContainer").html(`
+                            <div class="col-12">
+                                <div class="alert alert-danger">
+                                    <i class="mdi mdi-alert"></i> ${response.message || 'Tarifler üretilemedi'}
+                                </div>
+                            </div>
+                        `);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    $("#recipeContainer").html(`
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <i class="mdi mdi-alert"></i> Bir hata oluştu: ${error}
+                            </div>
+                        </div>
+                    `);
+                },
+                complete: function () {
+                    $("#btnGenerateRecipe").prop("disabled", false).html('<i class="mdi mdi-robot"></i> 3 Tarif Öner');
+                }
+            });
+        });
+
+
+        // Tarifleri düzenli formatta göster
+        function displayRecipes(recipes) {
+            console.log('Recipes received:', recipes);
+
+            if (!recipes || recipes.length === 0) {
+                $("#recipeContainer").html(`
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="mdi mdi-alert"></i> Tarif bulunamadı.
+                        </div>
+                    </div>
+                `);
+                return;
+            }
+
+            var html = '';
+            var colors = ['primary', 'success', 'info'];
+            var icons = ['mdi-silverware-fork-knife', 'mdi-chef-hat', 'mdi-food'];
+
+            recipes.forEach(function (recipe, index) {
+                var title = recipe.Title || recipe.title || 'Tarif ' + (index + 1);
+                var ingredients = recipe.Ingredients || recipe.ingredients || [];
+                var instructions = recipe.Instructions || recipe.instructions || [];
+
+                html += `
+                    <div class="col-md-4 mb-4">
+                        <div class="card recipe-card">
+                            <div class="card-header bg-${colors[index]} text-white">
+                                <h5 class="mb-0">
+                                    <i class="mdi ${icons[index]}"></i> ${title}
+                                </h5>
+                            </div>
+                            <div class="card-body recipe-content">
+
+                                <!-- Malzemeler -->
+                                <div class="mb-4">
+                                    <h6 class="text-primary fw-bold mb-3">
+                                        <i class="mdi mdi-format-list-bulleted"></i> Malzemeler
+                                    </h6>
+                                    ${ingredients.length > 0 ? `
+                                        <ul class="list-unstyled ps-3">
+                                            ${ingredients.map(ing => `<li class="mb-2"><i class="mdi mdi-chevron-right text-success"></i> ${ing}</li>`).join('')}
+                                        </ul>
+                                    ` : '<p class="text-muted">Malzeme bilgisi yok</p>'}
+                                </div>
+
+                                <!-- Hazırlanışı -->
+                                <div class="mb-3">
+                                    <h6 class="text-success fw-bold mb-3">
+                                        <i class="mdi mdi-chef-hat"></i> Hazırlanışı
+                                    </h6>
+                                    ${instructions.length > 0 ? `
+                                        <ol class="ps-3">
+                                            ${instructions.map(inst => `<li class="mb-2">${inst}</li>`).join('')}
+                                        </ol>
+                                    ` : '<p class="text-muted">Hazırlanış bilgisi yok</p>'}
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $("#recipeContainer").html(html);
+        }
+    </script>
+}

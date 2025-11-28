@@ -1,0 +1,127 @@
+﻿@model PostgreProject.Dtos.ProductDtos.CreateProductDto
+@{
+    ViewData["Title"] = "Yeni Ürün Ekle";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title mb-4">
+            <i class="mdi mdi-package-variant"></i> Yeni Ürün Ekle
+        </h4>
+
+        <form asp-action="Create" method="post" id="productForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ProductName" class="form-label">Ürün Adı *</label>
+                        <input asp-for="ProductName" class="form-control" id="productNameInput" placeholder="Örn: Ekmeği" />
+                        <span asp-validation-for="ProductName" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ProductPrice" class="form-label">Fiyat (₺) *</label>
+                        <input asp-for="ProductPrice" type="number" step="0.01" min="0" class="form-control" placeholder="0.00" />
+                        <span asp-validation-for="ProductPrice" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Açıklama *</label>
+                <div class="input-group mb-2">
+                    <button type="button" id="btnGenerateDescription" class="btn btn-primary btn-sm">
+                        <i class="mdi mdi-robot"></i> AI ile Açıklama Üret
+                    </button>
+                </div>
+                <textarea asp-for="Description" class="form-control" rows="5" id="descriptionArea" placeholder="Ürün açıklaması..."></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="ProductStock" class="form-label">Stok *</label>
+                        <input asp-for="ProductStock" type="number" min="0" class="form-control" value="0" />
+                        <span asp-validation-for="ProductStock" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="CategoryId" class="form-label">Kategori ID *</label>
+                        <input asp-for="CategoryId" type="number" min="1" class="form-control" placeholder="1" />
+                        <span asp-validation-for="CategoryId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label asp-for="ProductImage" class="form-label">Resim URL</label>
+                        <input asp-for="ProductImage" class="form-control" placeholder="/images/product.jpg" />
+                        <span asp-validation-for="ProductImage" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success" id="btnSave">
+                    <i class="mdi mdi-content-save"></i> Kaydet
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="mdi mdi-arrow-left"></i> Geri Dön
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#btnGenerateDescription").click(function () {
+                var productName = $("#productNameInput").val().trim();
+
+                if (!productName) {
+                    alert("Önce ürün adını girin!");
+                    $("#productNameInput").focus();
+                    return;
+                }
+
+                var $btn = $(this);
+                var originalHtml = $btn.html();
+                $btn.prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin"></i> Üretiliyor...');
+
+                $.ajax({
+                    url: '/Product/GenerateProductDescription',
+                    type: 'POST',
+                    data: { productName: productName },
+                    success: function (response) {
+                        console.log('AI Response:', response);
+
+                        if (response.success) {
+                            $("#descriptionArea").val(response.text);
+                            alert("Açıklama başarıyla üretildi!");
+                        } else {
+                            alert(" " + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("AJAX Error:", error);
+                        alert("❌ Bir hata oluştu. Lütfen tekrar deneyin.");
+                    },
+                    complete: function () {
+                        $btn.prop("disabled", false).html(originalHtml);
+                    }
+                });
+            });
+
+            $("#productForm").submit(function() {
+                $("#btnSave").prop("disabled", true).html('<i class="mdi mdi-loading mdi-spin"></i> Kaydediliyor...');
+            });
+        });
+    </script>
+}

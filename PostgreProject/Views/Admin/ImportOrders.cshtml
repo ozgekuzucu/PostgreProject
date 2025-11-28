@@ -1,0 +1,33 @@
+﻿
+@{
+    ViewData["Title"] = "ImportOrders";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+<div class="card">
+    <div class="card-body">
+        <h4 class="card-title">Sipariş Verilerini İçe Aktar</h4>
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-success">@ViewBag.Message</div>
+        }
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">CSV Dosyası Seçin</label>
+                <input type="file" name="csvFile" class="form-control" accept=".csv" required />
+            </div>
+            <button type="submit" class="btn btn-primary">İçe Aktar</button>
+        </form>
+
+        <hr />
+
+        <h5>CSV Format Örneği:</h5>
+        <pre>
+FirstName,LastName,ProductName,Price,Quantity,TotalPrice,OrderDate
+Ahmet,Yılmaz,Köy Ekmeği,25.00,2,50.00,2025-03-15
+Ayşe,Demir,Çikolatalı Pasta,350.00,1,350.00,2025-05-20
+        </pre>
+    </div>
+</div>

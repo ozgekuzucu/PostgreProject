@@ -1,0 +1,44 @@
+﻿@model List<PostgreProject.Entities.Chef>
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/AdminLayout/Index.cshtml";
+}
+
+
+<h2>Şef Listesi</h2>
+
+<a class="btn btn-primary" href="/Chef/Create">Yeni Chef Ekle</a>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Fotoğraf</th>
+            <th>Ad</th>
+            <th>Unvan</th>
+            <th>İşlemler</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    <img src="@item.ImageUrl" width="120" class="rounded" />
+                </td>
+                <td>@item.Name</td>
+                <td>@item.Title</td>
+
+                <td>
+                    <a class="btn btn-sm btn-warning" href="/Chef/Edit/@item.Id">
+                        <i class="mdi mdi-pencil"></i>
+                    </a>
+
+                    <a class="btn btn-sm btn-danger" href="/Chef/Delete/@item.Id"
+                       onclick="return confirm('Bu chef’i silmek istediğinize emin misiniz?')">
+                        <i class="mdi mdi-delete"></i>
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

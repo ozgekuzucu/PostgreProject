@@ -1,0 +1,42 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+@await Component.InvokeAsync("_AdminHeadComponentPartial")
+
+<body>
+    <div class="container-scroller">
+
+        @await Component.InvokeAsync("_AdminNavbarComponentPartial")
+        
+        <div class="container-fluid page-body-wrapper">
+
+            @await Component.InvokeAsync("_AdminSidebarComponentPartial")
+
+            <div class="main-panel">
+                <div class="content-wrapper">
+                    @RenderBody()
+                   
+                </div>
+                <!-- content-wrapper ends -->
+                <!-- partial:partials/_footer.html -->
+                <footer class="footer">
+                    <div class="d-sm-flex justify-content-center justify-content-sm-between">
+                        <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Telif Hakkı © 2023 <a href="https://www.bootstrapdash.com/" target="_blank">BootstrapDash</a>. Tüm hakları saklıdır. Dağıtımı yapan <a href="http://themewagon.com" target="_blank">ThemeWagon</a></span>
+                        <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center"><i class="mdi mdi-heart text-danger"></i> ile hazırlandı</span>
+                    </div>
+                </footer>
+                <!-- partial -->
+            </div>
+           
+
+        </div>
+    </div>
+    
+    @await Component.InvokeAsync("_AdminScriptComponentPartial")
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
